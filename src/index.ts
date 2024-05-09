@@ -1,20 +1,22 @@
 import OpenAI from "openai";
 require("dotenv").config()
 import express, { Application, NextFunction, Request, Response } from "express";
+import { verifyHeader } from "./middleware";
 
 
 const app: Application = express();
 app.use(express.json());
+app.use(verifyHeader);
 
 const port = process.env.PORT || " 3000"
+
+const modelGPT = "gpt-3.5-turbo";
 
 let conversationHistory: string = "";
 
 const openai = new OpenAI({
   apiKey: process.env.API_KEY_OPENAI,
 });
-
-const modelGPT = "gpt-3.5-turbo";
 
 app.post("/api", async (req: Request, res: Response) => {
 
@@ -48,7 +50,7 @@ app.post("/api", async (req: Request, res: Response) => {
 
 
 app.listen(port, () => {
-  console.log(`App en el puerto ${port}`)
+  console.log(`App en el puerto ${port}`);
 });
 
 export default app;
