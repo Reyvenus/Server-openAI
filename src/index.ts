@@ -6,6 +6,8 @@ import express, { Application, NextFunction, Request, Response } from "express";
 const app: Application = express();
 app.use(express.json());
 
+const port = process.env.PORT || " 3000"
+
 let conversationHistory: string = "";
 
 const openai = new OpenAI({
@@ -29,16 +31,13 @@ app.post("/api", async (req: Request, res: Response) => {
         { role: "assistant", content: conversationHistory },
       ],
       // response_format: { "type": "json_object" },
-      stream: true,
       temperature: 0.2
     });
 
-    for await (const part of response) {
-      aiResponse = part.choices[0]?.delta?.content || "";
-      conversationHistory += aiResponse + "\n";
-      res.write(aiResponse);
-    };
+    aiResponse = response.choices[0]?.message?.content || "";
+    conversationHistory += aiResponse + "\n";
 
+    res.send(aiResponse);
     res.end();
 
   } catch (error: any) {
@@ -47,5 +46,9 @@ app.post("/api", async (req: Request, res: Response) => {
   }
 });
 
+
+app.listen(port, () => {
+  console.log(`App en el puerto ${port}`)
+});
 
 export default app;
