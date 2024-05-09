@@ -1,0 +1,8 @@
+process.js
+testAI.js
+/.vercel
+
+.env
+/node_modules
+.vercelignore
+.env.development.local
