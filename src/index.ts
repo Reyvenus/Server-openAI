@@ -1,7 +1,9 @@
 import OpenAI from "openai";
-require("dotenv").config()
-import express, { Application, NextFunction, Request, Response } from "express";
+import express, { Application, Request, Response } from "express";
 import { verifyHeader } from "./middleware";
+import { Readable } from "stream"
+import { toFile } from "openai/uploads";
+import "dotenv/config"
 
 
 const app: Application = express();
@@ -22,10 +24,10 @@ app.post("/api", async (req: Request, res: Response) => {
 
   const message: string = req.body.message;
   conversationHistory += message + "\n";
-  let aiResponse: string = "";
+  let aiResponse: string = ""
 
   try {
-    const response: any = await openai.chat.completions.create({
+    const response: OpenAI.Chat.ChatCompletion = await openai.chat.completions.create({
       model: modelGPT,
       messages: [
         { role: "system", content: "You are a helpful assistant." },
@@ -36,15 +38,39 @@ app.post("/api", async (req: Request, res: Response) => {
       temperature: 0.2
     });
 
-    aiResponse = response.choices[0]?.message?.content || "";
-    conversationHistory += aiResponse + "\n";
+    if (response) {
+      aiResponse = response?.choices[0]?.message?.content || "";
+      conversationHistory += aiResponse + "\n";
 
-    res.send(aiResponse);
+      res.status(200).send(aiResponse);
+      res.end();
+    }
     res.end();
 
   } catch (error: any) {
-    res.status(500).send("error al procesar la solicitud");
-    console.log(error.message);
+    res.status(500).send(`error al procesar la solicitud--> ${error.message}`);
+  }
+});
+
+
+app.post("/api/atranscription", async (req: Request, res: Response) => {
+  try {
+    const chunks: Buffer[] = []
+    req.on('data', async (chunk: Buffer) => {
+      chunks.push(chunk)
+    });
+    req.on('end', async () => {
+      const buffer: Buffer = Buffer.concat(chunks)
+      const convertedAudio = await toFile(Readable.from(buffer), 'audio.mp3') as File;
+      const transcription: OpenAI.Audio.Transcription = await openai.audio.transcriptions.create({
+        file: convertedAudio,
+        model: "whisper-1"
+      });
+      res.status(200).send(transcription.text);
+    })
+
+  } catch (error: any) {
+    res.status(500).send(`Error alprocesar el audio-->${error.message}`)
   }
 });
 
